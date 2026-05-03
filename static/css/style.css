@@ -1,0 +1,705 @@
+@charset "utf-8";
+/* =========================================================================
+   ファイル名 : static/css/style.css
+   役割       : サーバー監視ダッシュボードのデザイン
+   テーマ     : ダークモード基調のモダンなインフラ系UI
+   ------------------------------------------------------------------------
+   ▼ 構成
+     1. CSS変数（カラーパレット）
+     2. リセット & 基本スタイル
+     3. ヘッダー
+     4. ダッシュボード共通カード
+     5. システム情報カード
+     6. CPUカード（円形ゲージ）
+     7. メモリカード
+     8. ネットワークカード
+     9. ディスクカード
+    10. プロセス表
+    11. 履歴グラフ
+    12. フッター
+    13. レスポンシブ対応
+   ========================================================================= */
+
+
+/* ==============================
+   1. CSS変数（カラーパレット）
+   ============================== */
+:root {
+    /* 背景：奥行きのある黒に近い紺 */
+    --bg-base: #0f1419;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2536;
+    --bg-input: #232a3d;
+
+    /* テキスト */
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+
+    /* アクセントカラー（インフラ系を意識した青緑系） */
+    --accent-cyan: #00d4ff;
+    --accent-blue: #4d9fff;
+    --accent-green: #2ee59d;
+    --accent-yellow: #ffd54a;
+    --accent-orange: #ff9d4a;
+    --accent-red: #ff5577;
+    --accent-purple: #a78bfa;
+
+    /* ボーダー */
+    --border-color: #2d3548;
+    --border-hover: #3d4760;
+
+    /* シャドウ */
+    --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-card-hover: 0 8px 24px rgba(0, 212, 255, 0.1);
+
+    /* トランジション */
+    --transition: 0.25s ease;
+}
+
+
+/* ==============================
+   2. リセット & 基本スタイル
+   ============================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    /* 微妙なグラデーションで奥行き感を出す */
+    background-image:
+        radial-gradient(circle at 0% 0%, rgba(77, 159, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, rgba(46, 229, 157, 0.05) 0%, transparent 50%);
+}
+
+/* スクロールバーのデザイン（Chromium系） */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover);
+}
+
+
+/* ==============================
+   3. ヘッダー
+   ============================== */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 36px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-left h1 {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-left h1 i {
+    color: var(--accent-cyan);
+}
+
+.header-left .subtitle {
+    font-size: 1.3rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    margin-left: 38px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+/* ステータスインジケータ：脈打つ緑のドット */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(46, 229, 157, 0.15);
+    border: 1px solid var(--accent-green);
+    border-radius: 20px;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: var(--accent-green);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    /* 脈打つアニメーション */
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.5; transform: scale(1.2); }
+}
+
+.last-update {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+
+/* ==============================
+   4. ダッシュボード共通カード
+   ============================== */
+.dashboard {
+    display: grid;
+    /* 自動で横幅に応じてカードを並べるグリッド */
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 20px;
+    padding: 24px 36px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+    transition: var(--transition);
+}
+
+.card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-card-hover);
+}
+
+.card h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card h2 i {
+    color: var(--accent-cyan);
+    font-size: 1.6rem;
+}
+
+/* 履歴グラフカードはグリッド全幅にする */
+.chart-card {
+    grid-column: 1 / -1;
+}
+
+/* プロセス一覧カードもグリッド全幅 */
+.process-card {
+    grid-column: 1 / -1;
+}
+
+
+/* ==============================
+   5. システム情報カード
+   ============================== */
+.system-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent-blue);
+}
+
+.info-item .label {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-item .value {
+    font-size: 1.35rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-family: 'Consolas', 'Monaco', monospace;
+    word-break: break-all;
+}
+
+
+/* ==============================
+   6. CPUカード（円形ゲージ）
+   ============================== */
+.cpu-content {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.gauge-wrapper {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    flex-shrink: 0;
+}
+
+.gauge {
+    /* SVGを反時計回りで描けるよう90度回転（12時位置スタートにする） */
+    transform: rotate(-90deg);
+}
+
+.gauge-bg {
+    fill: none;
+    stroke: var(--bg-input);
+    stroke-width: 12;
+}
+
+.gauge-fg {
+    fill: none;
+    stroke: var(--accent-cyan);
+    stroke-width: 12;
+    stroke-linecap: round;
+    /* 円周は 2πr = 2*π*68 ≈ 427 */
+    transition: stroke-dasharray 0.6s ease, stroke 0.3s ease;
+}
+
+/* 高負荷時に色を変えるためのクラス（JSで切り替える） */
+.gauge-fg.warn   { stroke: var(--accent-yellow); }
+.gauge-fg.alert  { stroke: var(--accent-orange); }
+.gauge-fg.danger { stroke: var(--accent-red); }
+
+.gauge-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.gauge-value {
+    font-size: 3.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.gauge-unit {
+    font-size: 1.6rem;
+    color: var(--text-secondary);
+    margin-left: 2px;
+}
+
+.cpu-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border-radius: 6px;
+    font-size: 1.25rem;
+}
+
+.info-row span {
+    color: var(--text-secondary);
+}
+
+.info-row strong {
+    color: var(--text-primary);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* コアごとの使用率バー */
+.per-core {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.core-bar {
+    background: var(--bg-input);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 1.05rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.core-bar .core-label {
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    display: block;
+    font-family: 'Consolas', monospace;
+}
+
+.core-bar .core-value {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: 'Consolas', monospace;
+}
+
+/* バーの背景塗りつぶし（疑似要素で表示） */
+.core-bar::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--accent-cyan);
+    width: var(--core-percent, 0%);
+    transition: width 0.4s ease;
+}
+
+
+/* ==============================
+   7. メモリカード
+   ============================== */
+.memory-summary {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 18px;
+}
+
+.memory-numbers {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.big-number {
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--accent-purple);
+    font-family: 'Consolas', monospace;
+    line-height: 1;
+}
+
+.big-unit {
+    font-size: 1.8rem;
+    color: var(--text-secondary);
+}
+
+.memory-detail {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 1.25rem;
+}
+
+.memory-detail span {
+    color: var(--text-secondary);
+    margin-right: 8px;
+}
+
+.memory-detail strong {
+    color: var(--text-primary);
+    font-family: 'Consolas', monospace;
+}
+
+/* 共通プログレスバー */
+.progress-bar {
+    width: 100%;
+    height: 14px;
+    background: var(--bg-input);
+    border-radius: 7px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.progress-bar.small {
+    height: 8px;
+    flex: 1;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 7px;
+    transition: width 0.6s ease, background-color 0.3s ease;
+}
+
+.memory-fill { background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue)); }
+.memory-fill.warn { background: linear-gradient(90deg, var(--accent-yellow), var(--accent-orange)); }
+.memory-fill.danger { background: linear-gradient(90deg, var(--accent-orange), var(--accent-red)); }
+
+.swap-fill { background: var(--accent-blue); }
+
+.swap-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+.swap-text {
+    font-family: 'Consolas', monospace;
+    color: var(--text-primary);
+    min-width: 80px;
+    text-align: right;
+}
+
+
+/* ==============================
+   8. ネットワークカード
+   ============================== */
+.network-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.net-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--bg-input);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.net-icon {
+    font-size: 2rem;
+    width: 44px;
+    height: 44px;
+    background: var(--bg-card);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--accent-cyan);
+}
+
+.net-icon.down { color: var(--accent-green); }
+.net-icon.up   { color: var(--accent-orange); }
+
+.net-item > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.net-label {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.net-value {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: 'Consolas', monospace;
+}
+
+.net-speed {
+    font-size: 1.1rem;
+    color: var(--accent-cyan);
+    font-family: 'Consolas', monospace;
+}
+
+
+/* ==============================
+   9. ディスクカード
+   ============================== */
+.disk-item {
+    margin-bottom: 16px;
+}
+
+.disk-item:last-child {
+    margin-bottom: 0;
+}
+
+.disk-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 1.2rem;
+}
+
+.disk-name {
+    color: var(--text-primary);
+    font-family: 'Consolas', monospace;
+    font-weight: 500;
+}
+
+.disk-detail {
+    color: var(--text-secondary);
+    font-family: 'Consolas', monospace;
+    font-size: 1.1rem;
+}
+
+.disk-fill {
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+}
+
+.disk-fill.warn   { background: linear-gradient(90deg, var(--accent-yellow), var(--accent-orange)); }
+.disk-fill.danger { background: linear-gradient(90deg, var(--accent-orange), var(--accent-red)); }
+
+
+/* ==============================
+   10. プロセス表
+   ============================== */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.process-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1.25rem;
+}
+
+.process-table thead {
+    background: var(--bg-input);
+}
+
+.process-table th {
+    padding: 12px 16px;
+    text-align: left;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.process-table th:nth-child(4),
+.process-table th:nth-child(5) {
+    text-align: right;
+}
+
+.process-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    font-family: 'Consolas', monospace;
+}
+
+.process-table td:nth-child(4),
+.process-table td:nth-child(5) {
+    text-align: right;
+    font-weight: 600;
+}
+
+.process-table tbody tr {
+    transition: var(--transition);
+}
+
+.process-table tbody tr:hover {
+    background: var(--bg-card-hover);
+}
+
+/* CPU使用率の色分け */
+.cpu-low    { color: var(--accent-green); }
+.cpu-mid    { color: var(--accent-yellow); }
+.cpu-high   { color: var(--accent-orange); }
+.cpu-danger { color: var(--accent-red); }
+
+
+/* ==============================
+   11. 履歴グラフ
+   ============================== */
+.chart-card canvas {
+    max-height: 280px;
+}
+
+
+/* ==============================
+   12. フッター
+   ============================== */
+.dashboard-footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 1.15rem;
+    border-top: 1px solid var(--border-color);
+    margin-top: 24px;
+}
+
+
+/* ==============================
+   13. レスポンシブ対応
+   ============================== */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .dashboard {
+        padding: 16px;
+        grid-template-columns: 1fr;
+    }
+
+    .header-left h1 {
+        font-size: 1.8rem;
+    }
+
+    .system-grid,
+    .network-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cpu-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .gauge-wrapper {
+        margin: 0 auto;
+    }
+
+    .memory-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

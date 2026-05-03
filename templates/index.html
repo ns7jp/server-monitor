@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<!--
+========================================================================
+  ファイル名 : templates/index.html
+  役割       : サーバー監視ダッシュボードの画面（フロントエンド）
+  概要       : Flaskが返すこのHTMLをブラウザが読み込み、
+               static/js/dashboard.js が定期的にAPIから情報を取得して
+               画面の各カードを更新していく。
+========================================================================
+-->
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Monitor Dashboard</title>
+
+    <!-- アイコンフォント Font Awesome（CDN） -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- 折れ線グラフ描画ライブラリ Chart.js（CDN） -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- ダッシュボード用スタイル -->
+    <!-- url_for() はFlaskのテンプレート関数。staticフォルダのファイルパスを正しく出力する -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- ===== ヘッダー（タイトルと最終更新時刻） ===== -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1>
+                <i class="fa-solid fa-server"></i>
+                Server Monitor
+            </h1>
+            <p class="subtitle">リアルタイム リソースモニタリング</p>
+        </div>
+        <div class="header-right">
+            <!-- ステータスインジケータ（緑＝正常稼働中） -->
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span>Live</span>
+            </div>
+            <!-- 最終更新時刻（JSで動的に書き換わる） -->
+            <div class="last-update">
+                Last update: <span id="last-update">--</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== メインダッシュボード ===== -->
+    <main class="dashboard">
+
+        <!-- ----- システム情報カード（OS・ホスト名・稼働時間） ----- -->
+        <section class="card system-card">
+            <h2><i class="fa-solid fa-circle-info"></i> System Info</h2>
+            <div class="system-grid">
+                <!-- 各項目はJSで data-*属性 を見て値を埋め込む形ではなく、id指定で直接書き換える -->
+                <div class="info-item">
+                    <span class="label">OS</span>
+                    <span class="value" id="sys-os">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Hostname</span>
+                    <span class="value" id="sys-hostname">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Architecture</span>
+                    <span class="value" id="sys-machine">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Processor</span>
+                    <span class="value" id="sys-processor">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Boot Time</span>
+                    <span class="value" id="sys-boot">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">Uptime</span>
+                    <span class="value" id="sys-uptime">--</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ----- CPUカード（円形ゲージ＋コア別バー） ----- -->
+        <section class="card cpu-card">
+            <h2><i class="fa-solid fa-microchip"></i> CPU</h2>
+            <div class="cpu-content">
+                <!-- 左：円形プログレスバー（SVGで描画） -->
+                <div class="gauge-wrapper">
+                    <svg class="gauge" width="160" height="160" viewBox="0 0 160 160">
+                        <!-- 背景の薄い円 -->
+                        <circle cx="80" cy="80" r="68" class="gauge-bg" />
+                        <!-- 進捗を表す円。stroke-dasharrayでJSから値を変える -->
+                        <circle cx="80" cy="80" r="68" class="gauge-fg" id="cpu-gauge"
+                                stroke-dasharray="0 427" />
+                    </svg>
+                    <div class="gauge-text">
+                        <span class="gauge-value" id="cpu-percent">0</span>
+                        <span class="gauge-unit">%</span>
+                    </div>
+                </div>
+                <!-- 右：CPU詳細情報 -->
+                <div class="cpu-details">
+                    <div class="info-row">
+                        <span>Physical Cores</span>
+                        <strong id="cpu-physical">--</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Logical Cores</span>
+                        <strong id="cpu-logical">--</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Frequency</span>
+                        <strong id="cpu-freq">-- MHz</strong>
+                    </div>
+                </div>
+            </div>
+            <!-- コアごとの使用率バー（JSで動的に追加される） -->
+            <div class="per-core" id="per-core-bars"></div>
+        </section>
+
+        <!-- ----- メモリカード（使用率バー＋折れ線グラフ） ----- -->
+        <section class="card memory-card">
+            <h2><i class="fa-solid fa-memory"></i> Memory</h2>
+            <div class="memory-summary">
+                <div class="memory-numbers">
+                    <span class="big-number" id="mem-percent">0</span>
+                    <span class="big-unit">%</span>
+                </div>
+                <div class="memory-detail">
+                    <div><span>Used:</span><strong id="mem-used">-- GB</strong></div>
+                    <div><span>Available:</span><strong id="mem-avail">-- GB</strong></div>
+                    <div><span>Total:</span><strong id="mem-total">-- GB</strong></div>
+                </div>
+            </div>
+            <!-- メモリ使用率バー -->
+            <div class="progress-bar">
+                <div class="progress-fill memory-fill" id="mem-bar" style="width: 0%"></div>
+            </div>
+            <!-- スワップ -->
+            <div class="swap-info">
+                <span>Swap</span>
+                <div class="progress-bar small">
+                    <div class="progress-fill swap-fill" id="swap-bar" style="width: 0%"></div>
+                </div>
+                <span class="swap-text" id="swap-text">--/--</span>
+            </div>
+        </section>
+
+        <!-- ----- ネットワークカード ----- -->
+        <section class="card network-card">
+            <h2><i class="fa-solid fa-network-wired"></i> Network I/O</h2>
+            <div class="network-grid">
+                <!-- 受信（Download） -->
+                <div class="net-item">
+                    <i class="fa-solid fa-arrow-down net-icon down"></i>
+                    <div>
+                        <span class="net-label">Received</span>
+                        <span class="net-value" id="net-recv">-- MB</span>
+                        <span class="net-speed" id="net-recv-speed">0 KB/s</span>
+                    </div>
+                </div>
+                <!-- 送信（Upload） -->
+                <div class="net-item">
+                    <i class="fa-solid fa-arrow-up net-icon up"></i>
+                    <div>
+                        <span class="net-label">Sent</span>
+                        <span class="net-value" id="net-sent">-- MB</span>
+                        <span class="net-speed" id="net-sent-speed">0 KB/s</span>
+                    </div>
+                </div>
+                <!-- パケット数 -->
+                <div class="net-item">
+                    <i class="fa-solid fa-paper-plane net-icon"></i>
+                    <div>
+                        <span class="net-label">Packets Sent</span>
+                        <span class="net-value" id="net-pkt-sent">--</span>
+                    </div>
+                </div>
+                <div class="net-item">
+                    <i class="fa-solid fa-envelope-open net-icon"></i>
+                    <div>
+                        <span class="net-label">Packets Received</span>
+                        <span class="net-value" id="net-pkt-recv">--</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ----- 履歴グラフ（CPU/メモリの推移） ----- -->
+        <section class="card chart-card">
+            <h2><i class="fa-solid fa-chart-line"></i> History (60 sec)</h2>
+            <!-- Chart.js が描画するキャンバス -->
+            <canvas id="historyChart"></canvas>
+        </section>
+
+        <!-- ----- ディスクカード（パーティション一覧） ----- -->
+        <section class="card disk-card">
+            <h2><i class="fa-solid fa-hard-drive"></i> Disk Usage</h2>
+            <!-- JSがここに各ディスクのバーを動的に追加する -->
+            <div id="disk-list"></div>
+        </section>
+
+        <!-- ----- プロセス一覧（CPU使用率トップ15） ----- -->
+        <section class="card process-card">
+            <h2><i class="fa-solid fa-list-check"></i> Top Processes</h2>
+            <div class="table-wrapper">
+                <table class="process-table">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Name</th>
+                            <th>User</th>
+                            <th>CPU %</th>
+                            <th>Memory %</th>
+                        </tr>
+                    </thead>
+                    <!-- JSが行を動的に追加する -->
+                    <tbody id="process-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== フッター ===== -->
+    <footer class="dashboard-footer">
+        <small>
+            Server Monitor Dashboard / Built with Flask + psutil + Chart.js
+            &nbsp;|&nbsp; &copy; 2026 Noriyuki Shimada
+        </small>
+    </footer>
+
+    <!-- ダッシュボード制御用のJavaScript -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
