@@ -184,6 +184,6 @@ def processes():
 # このファイルが直接実行されたとき（python app.py）だけ動く。
 # 他ファイルからimportされた場合は実行されない。
 if __name__ == '__main__':
-    # host='0.0.0.0' でLAN内の他端末からもアクセス可能に
-    # debug=True で、コード変更時に自動再起動・エラー画面表示
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # 学習用・ローカル確認用のため、安全側の初期値として自分のPCからのみアクセス可能にする。
+    # LAN内へ公開する場合はREADMEの注意事項を確認し、debug=Falseのままhostを調整する。
+    app.run(host='127.0.0.1', port=5000, debug=False)
