@@ -93,6 +93,17 @@ python app.py
 http://localhost:5000/
 ```
 
+### 4. 動作確認・テスト
+
+GitHub Actions では、Python の構文チェックと Flask API の簡単なテストを実行します。
+ローカルで確認する場合は、開発用依存関係を入れてから `pytest` を実行します。
+
+```bash
+pip install -r requirements-dev.txt
+python -m compileall .
+pytest
+```
+
 このサンプルは学習用・ローカル確認用のため、初期設定では自分のPCからのみアクセスできる `127.0.0.1` で起動します。
 
 LAN内の他端末から確認する場合は、`app.py` 末尾の `host` を `0.0.0.0` に変更し、`debug=False` のまま起動してください。
