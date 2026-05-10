@@ -4,6 +4,7 @@
 ![Flask](https://img.shields.io/badge/Flask-3.0-000000?logo=flask&logoColor=white)
 ![psutil](https://img.shields.io/badge/psutil-5.9-4CAF50)
 ![Chart.js](https://img.shields.io/badge/Chart.js-4.4-FF6384?logo=chartdotjs&logoColor=white)
+[![Python check](https://github.com/ns7jp/server-monitor/actions/workflows/python-check.yml/badge.svg)](https://github.com/ns7jp/server-monitor/actions/workflows/python-check.yml)
 
 Python（Flask）+ psutil + Chart.js で構築した、**リアルタイムサーバー監視ダッシュボード**です。
 ブラウザから動作中マシンのCPU・メモリ・ディスク・ネットワーク・プロセス情報を可視化します。
